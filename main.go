@@ -1,16 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"strings"
+
 	task "github.com/AgusMolinaCode/go-cli/tasks"
 )
 
 func main() {
 
-	file, err := os.OpenFile("tasks.json", os.O_RDWR | os.O_CREATE, 0666)
+	file, err := os.OpenFile("tasks.json", os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -39,19 +42,66 @@ func main() {
 		tasks = []task.Task{}
 	}
 
-	if(len(os.Args) < 2) {
+	if len(os.Args) < 2 {
 		printUsage()
 		return
+	}
+
+	switch os.Args[1] {
+	case "list":
+		task.ListTasks(tasks)
+	case "add":
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Nombre de la tarea: ")
+		name, _ := reader.ReadString('\n')
+		name = strings.TrimSpace(name)
+
+		tasks = task.AddTask(name, tasks)
+
+		// Guardar las tareas actualizadas en el archivo
+		file.Seek(0, 0)
+		file.Truncate(0)
+		bytes, err := json.Marshal(tasks)
+		if err != nil {
+			panic(err)
+		}
+		file.Write(bytes)
+	case "complete":
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("ID de la tarea a completar: ")
+		id, _ := reader.ReadString('\n')
+		id = strings.TrimSpace(id)
+
+		tasks = task.CompleteTask(id, tasks)
+
+		// Guardar las tareas actualizadas en el archivo
+		file.Seek(0, 0)
+		file.Truncate(0)
+		bytes, err := json.Marshal(tasks)
+		if err != nil {
+			panic(err)
+		}
+		file.Write(bytes)
+	case "delete":
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("ID de la tarea a eliminar: ")
+		id, _ := reader.ReadString('\n')
+		id = strings.TrimSpace(id)
+
+		tasks = task.DeleteTask(id, tasks)
+
+		// Guardar las tareas actualizadas en el archivo
+		file.Seek(0, 0)
+		file.Truncate(0)
+		bytes, err := json.Marshal(tasks)
+		if err != nil {
+			panic(err)
+		}
+		file.Write(bytes)
 	}
 
 }
 
 func printUsage() {
-	fmt.Println("Usage: go-cli [command]")
-	fmt.Println("Commands:")
-	fmt.Println("  list")
-	fmt.Println("  add [task]")
-	fmt.Println("  do [task ID]")
-	fmt.Println("  undo [task ID]")
-	fmt.Println("  delete [task ID]")
+	fmt.Println("Escoje un comando para ejecutar [add, list, complete, delete]")
 }
